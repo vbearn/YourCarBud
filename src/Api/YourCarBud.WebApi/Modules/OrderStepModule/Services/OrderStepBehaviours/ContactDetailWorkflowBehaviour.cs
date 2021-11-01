@@ -34,14 +34,14 @@ namespace YourCarBud.WebApi.Modules.OrderStepModule.Services.OrderStepBehaviours
         public Type DetailCreationArgsDtoType => typeof(ContactCreationArgsDto);
         public string OrderStepName => _OrderStepName;
 
-        public void ValidateBeforeStatusUpdate(Order order, Statuses statusToBeUpdatedInto)
+        public void ValidateStatusUpdate(Order order, Statuses statusToBeUpdatedInto)
         {
             var orderStep = _orderStepService.GetOrderStep(order, OrderStepName);
 
-            _orderStepService.ValidateOrderStepStatusUpdate(orderStep, statusToBeUpdatedInto);
+            _orderStepService.ValidateStatusUpdate(orderStep, statusToBeUpdatedInto);
         }
 
-        public async Task DoActionsAfterStatusUpdate(Guid orderId, OrderStepStatusUpdateModel updateModel)
+        public async Task AfterStatusUpdate(Guid orderId, OrderStepStatusUpdateModel updateModel)
         {
             var order = await _orderService.GetOrderWithChildren(orderId);
 
@@ -55,6 +55,7 @@ namespace YourCarBud.WebApi.Modules.OrderStepModule.Services.OrderStepBehaviours
                         "DeliveryAppointment data is not provided correctly.");
                 }
 
+                // TODO: validate Email field
                 var contactEntity = _mapper.Map<ContactDetail>(updateModel.DetailCreationArgs);
                 contactEntity.Order = order;
                 await _contactRepository.AddAsync(contactEntity);

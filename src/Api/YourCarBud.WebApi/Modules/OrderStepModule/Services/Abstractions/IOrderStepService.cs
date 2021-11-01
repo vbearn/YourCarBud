@@ -10,9 +10,9 @@ namespace YourCarBud.WebApi.Modules.OrderStepModule.Services.Abstractions
     {
         OrderStep GetOrderStep(Order order, string stepName);
         Task Update(OrderStep orderStep, CancellationToken cancellationToken);
-        void ValidateOrderStepStatusUpdate(OrderStep orderStep, Statuses statusToBeUpdatedInto);
+        void ValidateStatusUpdate(OrderStep orderStep, Statuses statusToBeUpdatedInto);
 
-        Task UpdateStepStatus(IOrderStepWorkflowBehaviour orderStepWorkflowBehaviour, Guid orderId,
+        Task UpdateStatus(IOrderStepWorkflowBehaviour orderStepWorkflowBehaviour, Guid orderId,
             OrderStepStatusUpdateModel updateModel, CancellationToken cancellationToken);
     }
 }

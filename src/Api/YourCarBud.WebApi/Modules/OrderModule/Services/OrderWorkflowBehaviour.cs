@@ -20,7 +20,7 @@ namespace YourCarBud.WebApi.Modules.OrderModule.Services
         }
 
 
-        public void ValidateBeforeStatusUpdate(Order order, Statuses statusToBeUpdatedInto)
+        public void ValidateStatusUpdate(Order order, Statuses statusToBeUpdatedInto)
         {
             if (order.Status is Statuses.Success or Statuses.Fail)
             {
@@ -29,7 +29,7 @@ namespace YourCarBud.WebApi.Modules.OrderModule.Services
 
         }
 
-        public async Task DoActionsAfterStatusUpdate(Guid orderId, OrderStepStatusUpdateModel updateModel)
+        public async Task AfterStatusUpdate(Guid orderId, OrderStepStatusUpdateModel updateModel)
         {
             var order = await _orderService.GetOrderWithChildren(orderId);
             var orderSteps = order.OrderSteps.ToList();

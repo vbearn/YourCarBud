@@ -45,7 +45,7 @@ namespace YourCarBud.WebApi.Modules.OrderStepModule.Controllers
             var updateModel = _mapper.Map<OrderStepStatusUpdateModel>(updateDto,
                 opts => opts.Items.Add(nameof(IOrderStepWorkflowBehaviour), orderStepBehaviour));
 
-            await _orderStepService.UpdateStepStatus(orderStepBehaviour, orderId, updateModel, cancellationToken);
+            await _orderStepService.UpdateStatus(orderStepBehaviour, orderId, updateModel, cancellationToken);
 
             return Ok();
         }

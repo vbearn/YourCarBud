@@ -10,7 +10,7 @@ using YourCarBud.WebApi.Modules.DbContextModule;
 namespace YourCarBud.WebApi.Migrations
 {
     [DbContext(typeof(YourCarBudDbContext))]
-    [Migration("20211101171953_Init")]
+    [Migration("20211101215014_Init")]
     partial class Init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

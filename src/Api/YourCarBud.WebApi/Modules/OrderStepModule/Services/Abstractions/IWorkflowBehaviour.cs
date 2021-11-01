@@ -7,7 +7,11 @@ namespace YourCarBud.WebApi.Modules.OrderStepModule.Services.Abstractions
 {
     public interface IWorkflowBehaviour
     {
-        public void ValidateBeforeStatusUpdate(Order order, Statuses statusToBeUpdated);
-        public Task DoActionsAfterStatusUpdate(Guid orderId, OrderStepStatusUpdateModel updateModel);
+        public void ValidateStatusUpdate(Order order, Statuses statusToBeUpdated);
+      
+        /// <summary>
+        /// synchronizes the state of all dependent entities after a status update
+        /// </summary>
+        public Task AfterStatusUpdate(Guid orderId, OrderStepStatusUpdateModel updateModel);
     }
 }

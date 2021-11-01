@@ -43,13 +43,12 @@ namespace YourCarBud.WebApi.Modules.OrderStepModule.Services
             await _orderStepRepository.UpdateAsync(orderStep, cancellationToken);
         }
 
-        public void ValidateOrderStepStatusUpdate(OrderStep orderStep, Statuses statusToBeUpdatedInto)
+        public void ValidateStatusUpdate(OrderStep orderStep, Statuses statusToBeUpdatedInto)
         {
             if ((int)statusToBeUpdatedInto < (int)orderStep.Status)
             {
                 throw new ConflictingOperationException("OrderStep can not be demoted.");
             }
-
 
             if (orderStep.Status is Statuses.Success or Statuses.Fail)
             {
@@ -58,14 +57,14 @@ namespace YourCarBud.WebApi.Modules.OrderStepModule.Services
             }
 
             if (orderStep.Status == Statuses.Pending &&
-                (statusToBeUpdatedInto == Statuses.Success || statusToBeUpdatedInto == Statuses.Fail))
+                statusToBeUpdatedInto is Statuses.Success or Statuses.Fail)
             {
                 throw new ConflictingOperationException(
                     "OrderStep can not jump from Pending to Success or Fail. It needs to be Started first.");
             }
         }
 
-        public async Task UpdateStepStatus(IOrderStepWorkflowBehaviour orderStepWorkflowBehaviour, Guid orderId,
+        public async Task UpdateStatus(IOrderStepWorkflowBehaviour orderStepWorkflowBehaviour, Guid orderId,
             OrderStepStatusUpdateModel updateModel, CancellationToken cancellationToken)
         {
             var order = await _orderService.GetOrderWithChildren(orderId);
@@ -75,21 +74,30 @@ namespace YourCarBud.WebApi.Modules.OrderStepModule.Services
             }
 
             // validate that both Order's and OrderStep's status can be updated
-            _orderWorkflowBehaviour.ValidateBeforeStatusUpdate(order, updateModel.Status);
-            orderStepWorkflowBehaviour.ValidateBeforeStatusUpdate(order, updateModel.Status);
+            _orderWorkflowBehaviour.ValidateStatusUpdate(order, updateModel.Status);
+            orderStepWorkflowBehaviour.ValidateStatusUpdate(order, updateModel.Status);
 
 
+            // updating order step status
             var orderStep = GetOrderStep(order, orderStepWorkflowBehaviour.OrderStepName);
-
             orderStep.Status = updateModel.Status;
 
+            // a pipeline for Updating the OrderStep Status -> PostProcessing OrderStep -> PostProcessing Order
+            // taking care of all the steps of workflow
+            await ExecuteWorkflowPipelineForStatusUpdate(orderStepWorkflowBehaviour, orderId, updateModel, cancellationToken, orderStep);
+        }
+
+        private async Task ExecuteWorkflowPipelineForStatusUpdate(IOrderStepWorkflowBehaviour orderStepWorkflowBehaviour,
+            Guid orderId, OrderStepStatusUpdateModel updateModel, CancellationToken cancellationToken, OrderStep orderStep)
+        {
             using (var context = await _orderStepRepository.BeginTransactionAsync())
             {
                 await Update(orderStep, cancellationToken);
 
-                // do after status update actions, such as marking order status / completedAt / ...
-                await orderStepWorkflowBehaviour.DoActionsAfterStatusUpdate(orderId, updateModel);
-                await _orderWorkflowBehaviour.DoActionsAfterStatusUpdate(orderId, updateModel);
+                // do actions after status update, such as marking the whole order as success or fail, marking completedAt,
+                // creating Payment or Delivery records, and ...
+                await orderStepWorkflowBehaviour.AfterStatusUpdate(orderId, updateModel);
+                await _orderWorkflowBehaviour.AfterStatusUpdate(orderId, updateModel);
 
                 await context.CommitAsync(cancellationToken);
             }

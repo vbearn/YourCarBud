@@ -34,24 +34,25 @@ namespace YourCarBud.WebApi.Modules.OrderStepModule.Services.OrderStepBehaviours
         public string OrderStepName => _OrderStepName;
         public Type DetailCreationArgsDtoType => typeof(DeliveryAppointmentCreationArgsDto);
 
-        public void ValidateBeforeStatusUpdate(Order order, Statuses statusToBeUpdatedInto)
+        public void ValidateStatusUpdate(Order order, Statuses statusToBeUpdatedInto)
         {
             var orderStep = _orderStepService.GetOrderStep(order, OrderStepName);
 
-            _orderStepService.ValidateOrderStepStatusUpdate(orderStep, statusToBeUpdatedInto);
+            _orderStepService.ValidateStatusUpdate(orderStep, statusToBeUpdatedInto);
 
             var contactDetailStep =
                 _orderStepService.GetOrderStep(order, ContactDetailWorkflowBehaviour._OrderStepName);
+
             var checkIfPrerequisiteStepIsDone = contactDetailStep.Status == Statuses.Success;
             if (!checkIfPrerequisiteStepIsDone)
             {
                 throw new ConflictingOperationException(
-                    $"{_OrderStepName} step can not be started before {ContactDetailWorkflowBehaviour._OrderStepName} succeeded.");
+                    $"{_OrderStepName} step can not be started before {ContactDetailWorkflowBehaviour._OrderStepName}'s success.");
             }
         }
 
 
-        public async Task DoActionsAfterStatusUpdate(Guid orderId, OrderStepStatusUpdateModel updateModel)
+        public async Task AfterStatusUpdate(Guid orderId, OrderStepStatusUpdateModel updateModel)
         {
             var order = await _orderService.GetOrderWithChildren(orderId);
 
@@ -62,7 +63,7 @@ namespace YourCarBud.WebApi.Modules.OrderStepModule.Services.OrderStepBehaviours
                 if (updateModel.DetailCreationArgs.GetType() != DetailCreationArgsDtoType)
                 {
                     throw new ArgumentException(
-                        "DeliveryAppointment data is not provided correctly.");
+                        "DeliveryAppointmentCreationArgsDto is not provided correctly.");
                 }
 
                 var paymentEntity = _mapper.Map<DeliveryAppointment>(updateModel.DetailCreationArgs);
