@@ -40,7 +40,7 @@ namespace YourCarBud.WebApi.Modules.OrderModule.Services
             return GetAllOrdersWithChildren().Where(x => x.Id == id);
         }
 
-        public List<OrderStep> GetDefaultOrderSteps(Order order)
+        private List<OrderStep> GetDefaultOrderSteps(Order order)
         {
             return _orderStepBehaviourFactory.Value.GetAllWorkflowBehaviours().Select(behaviour => new OrderStep
             {

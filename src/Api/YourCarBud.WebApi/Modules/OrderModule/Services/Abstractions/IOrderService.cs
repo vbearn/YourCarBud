@@ -12,7 +12,6 @@ namespace YourCarBud.WebApi.Modules.OrderModule.Services.Abstractions
         IQueryable<Order> GetAllOrdersWithChildren();
         Task<Order> GetOrderWithChildren(Guid id);
         IQueryable<Order> GetOrderWithChildrenQuery(Guid id);
-        List<OrderStep> GetDefaultOrderSteps(Order order);
         Task CreateOrder(Order order, CancellationToken cancellationToken);
         Task UpdateOrder(Order order);
     }
