@@ -2,7 +2,7 @@
 
 A .NET 5 application to be Your Car Buddy for ordering and delivery of used cars!
 
-## Getting Started
+## 1. Getting Started
 
 Clone the repository in your local machine.
 
@@ -15,18 +15,18 @@ You should be able to browse the Swagger interface of the application by using t
 
 See the last section of this file to learn how to test the app using Postman.
 
-## Business Flow
+## 2. Business Flow
 
 The applications exposes endpoints to
 
-1. Create an order
-2. Create Contact Details for the order, and update its status in a workflow, from Pending -> Start -> Success/Fail
-3. Process Delivery Appointment and Payment for the order, simultaneously, and update their statuses in a workflow, from Pending -> Start -> Success/Fail
-4. Mark the status of the whole order to Success (when all steps are succeeded) or Fail (when any step fails)
+- Create an order
+- Create Contact Details for the order, and update its status in a workflow, from Pending -> Start -> Success/Fail
+- Process Delivery Appointment and Payment for the order, simultaneously, and update their statuses in a workflow, from Pending -> Start -> Success/Fail
+- Mark the status of the whole order to Success (when all steps are succeeded) or Fail (when any step fails)
 
 Below are the explicit details of each endpoint alongside their Verb and sample Payload to be executed (via tools like Postman)
 
-### Step 1. Create the Order
+### 2.1. Create the Order
 
 First, an Order should be created. The Id of this Order will be used in the next steps.
 
@@ -64,7 +64,7 @@ A newly create order will have 3 default Steps, all initialized with Pending sta
 }
 ```
 
-### Step 2. Update the Status of ContactDetails step
+### 2.2. Update the Status of ContactDetails step
 
 Next, the first Order Step (ContactDetails) should be promoted to Success. This happens via calling a dedicated endpoint to promote its status, one by one, from Pending -> Start -> Success/Fail
 
@@ -74,7 +74,7 @@ Next, the first Order Step (ContactDetails) should be promoted to Success. This 
 | Promote ContactDetails step to Success                      | `/api/orders/{orderId} /steps/contactDetails/status` | PUT  | `{ "status": "Success", "Email":"sampleEmail@doamin.com" }` |
 | Abandon ContactDetails step and mark the Status as Fail     | `/api/orders/{orderId} /steps/contactDetails/status` | PUT  | `{ "status": "Fail", "message": "Reason for failure" }`     |
 
-### Step 3. Update the Status of ProcessPayment and ProcessDeliveryAppointment steps
+### 2.3. Update the Status of ProcessPayment and ProcessDeliveryAppointment steps
 
 After that, both remaining Order Steps (ProcessPayment and ProcessDeliveryAppointment) should be promoted to Success. Their status can be promoted simultaneously, regardless of the other one's state. When both of these steps have gone through the Pending -> Start -> Success/Fail journey, the Order will proceed to the final step.
 
@@ -90,7 +90,7 @@ After that, both remaining Order Steps (ProcessPayment and ProcessDeliveryAppoin
 
 It should be noted that the `ContactDetail`, `DeliveryAppointment`, `Payment` entities are created when their respective steps are marked as Success.
 
-### Step 4. Finalize the Order's Status based on the progress of its steps
+### 2.4. Update the Status of the Order based on the progress of its steps
 
 Finally, the Order will be marked as Success (when all the steps are succeeded) or Fail (when any step fails).
 
@@ -103,21 +103,21 @@ The progress of the Order and its child Order Steps can be monitored via endpoin
 | Get all orders       | `/api/orders`           | GET  | N/A          |
 | Get a specific order | `/api/orders/{orderId}` | GET  | N/A          |
 
-## Assumptions and Thought Processes
+## 3. Assumptions and Thought Processes
 
-### - Selecting between Guid, long, or string as Entity Id
+### 3.1. Selecting between Guid, long, or string as Entity Id
 
 Whilst there are many arguments and debates on pros and cons of each Data Type for using as the Entity Id (15000+ [debates on stackoverflow alone](https://www.google.com/search?q=database+id+guid+vs+int+vs+string+site:stackoverflow.com&rlz=1C1CHBF_enMY889MY889&sxsrf=AOaemvKJwmXa0gHjik5ntwD0pBKCgZkB9g:1635835306439&sa=X&ved=2ahUKEwiX_OayifnzAhUXeCsKHVu4CRcQrQIoBHoECDUQBQ&biw=1396&bih=656&dpr=1.38)), the current application currently uses `Guid`s as the primary Data Type for all entities due its simplicity of usage and seeding, specially when it is time to "Transform the Architecture Into Microservices".
 
 This, of course, is a un-educated assumption yet, due to currently-unknown production requirements, and the progress path of application's architecture in the future.
 
-### - Adding new Order Steps elegantly, without much hard-coding
+### 3.2. Adding new Order Steps elegantly, without much hard-coding
 
 Extra care has been given into making the Order Steps as dynamic as possible, in order to facilitate the (possible) addition of new Steps into the application.
 
 To add a new Order Step (for example an step called CustomerApproval, which is done after all the current steps and deals with the customer safely receiving and approving of the quality of the product):
 
-1. Add a new class inheriting from `IOrderStepWorkflowBehaviour`:
+3.2.1. Add a new class inheriting from `IOrderStepWorkflowBehaviour`:
 
 ```
 public class CustomerApprovalWorkflowBehaviour : IOrderStepWorkflowBehaviour
@@ -152,12 +152,13 @@ public class CustomerApprovalWorkflowBehaviour : IOrderStepWorkflowBehaviour
 
 ```
 
-2. Now wire up all the DI configurations in `OrderStepModuleConfiguration` and now the new step is ready for usage!
+3.2.2. Now wire up all the DI configurations in `OrderStepModuleConfiguration` and now the new step is ready for usage!
 
-3. Note that a new Controller Endpoint is automatically created for updating the status of this OrderStep, without the need to specify anything manually.
-   It will be placed upon `/api/orders/{orderId}/steps/customerApproval/status` URI,
+3.2.3. Note that a new Controller Endpoint is **automatically** created for updating the status of this OrderStep, without the need to specify anything manually.
 
-### - Allowed states for the Workflow
+It can be accessed via executing a PUT against `/api/orders/{orderId}/steps/customerApproval/status` URI.
+
+### 3.3. Allowed states for the Workflow
 
 Currently the allowed traversal paths for the workflow of the Order Steps are:
 
@@ -168,15 +169,34 @@ Currently the allowed traversal paths for the workflow of the Order Steps are:
 - Steps can NOT be updated anymore when the whole Order has landed into Success/Fail state.
 - ProcessDeliveryAppointment and ProcessPayment steps can ONLY be updated when the ContactDetails step is marked as Success.
 
-### - Choosing URI and Verb for Status Update endpoint
+### 3.4. Choosing URI and Verb for Status Update endpoint
 
-Using a PATCH on `/api/orders/{orderId}/steps/{stepName}` or a PUT on `/api/orders/{orderId}/steps/{stepName}/status`?
+Which one is correct?
 
-Idempotency and simplicity of PUT plays a good role for the current choice.
+- Executing a PATCH on `/api/orders/{orderId}/steps/{stepName}`, or
+- Executing a PUT on `/api/orders/{orderId}/steps/{stepName}/status`
+- Executing a POST on action-like resource `/api/orders/{orderId}/steps/{stepName}/promoteStatus`
 
-### - Passing the additional information for each step when it is marked as Success
+All three can be considered as correct from a RESTful point of view. It depends on how the application looks at the resource.
 
-What is the best way to add additional information for each step: Entities: `ContactDetail`, `DeliveryAppointment`, `Payment`
+This application currently considers the _"Status of the OrderStep"_ as an independent resource by itself.
+
+Hence PUT can be used to modify the _"Status of the OrderStep"_ as a self-reliant entity.
+
+Using PUT also has the added benefit of being Idempotent and also contains simpler payload.
+
+### 3.5. Passing the additional information for Steps when marked as Success
+
+Consider the `Email` field for `ContactDetail`, the `AppointmentDateTime` for `DeliveryAppointment`, and the `Amount` for `Payment`.
+
+- What is the best way to add additional information for each step?
+- When should these fields be amended to the Order Step?
+
+Currently the application accepts this extra data exactly when marking the OrderStep as Success, using a dynamically-crafted DTO. (Refer to section 2.3. for the payloads)
+
+This approach has the benefit of being fully automated and dynamic, but lacks a clear specification and validators for the Json Payload. Hence currently a manual validation is being performed on the DTO.
+
+TODO: This can be further improved
 
 - ...
 - ...
