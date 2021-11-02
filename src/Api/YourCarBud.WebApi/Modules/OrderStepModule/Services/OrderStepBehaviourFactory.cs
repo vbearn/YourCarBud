@@ -21,7 +21,7 @@ namespace YourCarBud.WebApi.Modules.OrderStepModule.Services
 
             if (orderStepBehaviour == null)
             {
-                throw new ArgumentException($"No resolver registered for step {stepName}");
+                throw new ArgumentException($"Step Name {stepName} is not valid. No resolver has been registered for with this step name.");
             }
 
             IOrderStepWorkflowBehaviour iOrderStepBehaviour = orderStepBehaviour;
