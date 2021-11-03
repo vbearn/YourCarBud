@@ -109,21 +109,20 @@ The progress of the Order and its child Order Steps can be monitored via endpoin
 
 Whilst there are many arguments and debates on pros and cons of each Data Type for using as the Entity Id (15000+ [debates on stackoverflow alone](https://www.google.com/search?q=database+id+guid+vs+int+vs+string+site:stackoverflow.com&rlz=1C1CHBF_enMY889MY889&sxsrf=AOaemvKJwmXa0gHjik5ntwD0pBKCgZkB9g:1635835306439&sa=X&ved=2ahUKEwiX_OayifnzAhUXeCsKHVu4CRcQrQIoBHoECDUQBQ&biw=1396&bih=656&dpr=1.38)), the current application currently uses `Guid`s as the primary Data Type for all entities due its simplicity of usage and seeding, specially when it is time to "Transform the Architecture Into Microservices".
 
-This, of course, is a un-educated assumption yet, due to currently-unknown production requirements, and the progress path of application's architecture in the future.
+This, of course, is a un-educated assumption yet, due to currently-unknown production requirements and the progress path of the application's architecture in the future.
 
 ### 3.2. Adding new Order Steps elegantly, without much hard-coding
 
 Extra care has been given into making the Order Steps as dynamic as possible, in order to facilitate the (possible) addition of new Steps into the application.
 
-To add a new Order Step (for example an step called CustomerApproval, which is done after all the current steps and deals with the customer safely receiving and approving of the quality of the product):
+To add a new Order Step (for example a step called CustomerApproval, which is done after all the current steps and specifies whether the customer has safely received and approved the product):
 
 3.2.1. Add a new class inheriting from `IOrderStepWorkflowBehaviour`:
 
 ```
 public class CustomerApprovalWorkflowBehaviour : IOrderStepWorkflowBehaviour
 {
-    public const string _OrderStepName = "CustomerApproval";
-    public string OrderStepName => _OrderStepName;
+    public string OrderStepName => "CustomerApproval";
 
     // this indicates the additional information received when marking the step as Success
     public Type DetailCreationArgsDtoType => typeof(CustomerApprovalCreationArgsDto);
@@ -152,11 +151,9 @@ public class CustomerApprovalWorkflowBehaviour : IOrderStepWorkflowBehaviour
 
 ```
 
-3.2.2. Now wire up all the DI configurations in `OrderStepModuleConfiguration` and now the new step is ready for usage!
+3.2.2. Now wire up all the DI configurations in `OrderStepModuleConfiguration`.
 
-3.2.3. Note that a new Controller Endpoint is **automatically** created for updating the status of this OrderStep, without the need to specify anything manually.
-
-It can be accessed via executing a PUT against `/api/orders/{orderId}/steps/customerApproval/status` URI.
+3.2.3. The new step is ready for usage! Note that a new Controller Endpoint is **automatically** created for updating the status of this OrderStep, without the need to specify anything manually. It can be accessed via executing a PUT against `/api/orders/{orderId}/steps/customerApproval/status` URI.
 
 ### 3.3. Allowed states for the Workflow
 
@@ -169,21 +166,23 @@ Currently the allowed traversal paths for the workflow of the Order Steps are:
 - Steps can NOT be updated anymore when the whole Order has landed into Success/Fail state.
 - ProcessDeliveryAppointment and ProcessPayment steps can ONLY be updated when the ContactDetails step is marked as Success.
 
+Additional rules and requirements for each step can be configured through amending the `ValidateStatusUpdate()` method of each `IOrderStepWorkflowBehaviour`.
+
 ### 3.4. Choosing URI and Verb for Status Update endpoint
 
 Which one is correct?
 
 - Executing a PATCH on `/api/orders/{orderId}/steps/{stepName}`, or
 - Executing a PUT on `/api/orders/{orderId}/steps/{stepName}/status`
-- Executing a POST on action-like resource `/api/orders/{orderId}/steps/{stepName}/promoteStatus`
+- Executing a POST on an action-like resource `/api/orders/{orderId}/steps/{stepName}/promoteStatus`
 
-All three can be considered as correct from a RESTful point of view. It depends on how the application looks at the resource.
+All three can be considered somehow correct from a RESTful point of view (though the last one is a bit shady). Ultimately, the choice depends on how the application looks at the resource.
 
-This application currently considers the _"Status of the OrderStep"_ as an independent resource by itself.
+This application currently considers the **"Status of the OrderStep"** as an independent resource by itself.
 
-Hence PUT can be used to modify the _"Status of the OrderStep"_ as a self-reliant entity.
+Hence **PUT** can be used to modify the **"Status of the OrderStep"** as a whole entity.
 
-Using PUT also has the added benefit of being Idempotent and also contains simpler payload.
+Using PUT also has the added benefit of being Idempotent and also containing a simpler payload.
 
 ### 3.5. Passing the additional information for Steps when marked as Success
 
@@ -194,7 +193,7 @@ Consider the `Email` field for `ContactDetail`, the `AppointmentDateTime` for `D
 
 Currently the application accepts this extra data exactly when marking the OrderStep as Success, using a dynamically-crafted DTO. (Refer to section 2.3. for the payloads)
 
-This approach has the benefit of being fully automated and dynamic, but lacks a clear specification and validators for the Json Payload. Hence currently a manual validation is being performed on the DTO.
+This approach has the benefit of being fully automated and dynamic (and is easily configured through the `AfterStatusUpdate()` method of each `IOrderStepWorkflowBehaviour`), but lacks a clear specification and validators for the Json Payload. Hence currently a manual validation is being performed on the DTO.
 
 TODO: This can be further improved
 
@@ -202,7 +201,7 @@ TODO: This can be further improved
 - ...
 - ...
 
-### - Tests
+### 3.6. Tests
 
 Currently a Unit Test project is implemented for the main library.
 
