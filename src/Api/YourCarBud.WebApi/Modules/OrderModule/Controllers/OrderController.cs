@@ -32,7 +32,6 @@ namespace YourCarBud.WebApi.Modules.OrderModule.Controllers
 
         [HttpGet("")]
         [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(IEnumerable<OrderViewDto>))]
-        [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
         [ProducesDefaultResponseType]
         public async Task<ActionResult<IEnumerable<OrderViewDto>>> GetAllOrders()
         {

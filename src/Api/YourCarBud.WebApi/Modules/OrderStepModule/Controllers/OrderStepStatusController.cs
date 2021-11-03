@@ -34,7 +34,7 @@ namespace YourCarBud.WebApi.Modules.OrderStepModule.Controllers
         [HttpPut("")]
         [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-        [ProducesResponseType((int)HttpStatusCode.Created)]
+        [ProducesResponseType((int)HttpStatusCode.Conflict)]
         [ProducesDefaultResponseType]
         public async Task<ActionResult> UpdateStepStatus(Guid orderId, string stepName,
             OrderStepStatusUpdateDto updateDto, CancellationToken cancellationToken)
